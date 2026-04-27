@@ -1,18 +1,40 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, MoreHorizontal, User } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 interface UsersProps {
   onReviewUser: (id: string) => void;
 }
 
+type UserRow = {
+  id: string;
+  name: string;
+  tier: string;
+  email: string;
+  rides: number;
+  status: string;
+  statusColor: string;
+};
+
 export default function Users({ onReviewUser }: UsersProps) {
-  const users = [
-    { id: '#4920', name: 'Sarah Jenkins', tier: 'Corporate Tier', email: 's.jenkins@example.com', rides: 142, status: 'Active', statusColor: 'bg-secondary/10' },
-    { id: '#4921', name: 'Marcus Chen', tier: 'Standard Tier', email: 'm.chen@example.com', rides: 38, status: 'Suspended', statusColor: 'bg-accent text-white' },
-    { id: '#4922', name: 'Amanda Lopez', tier: 'Premium Tier', email: 'alopez@domain.co', rides: 89, status: 'Active', statusColor: 'bg-secondary/10' },
-    { id: '#4923', name: 'David Wright', tier: 'Standard Tier', email: 'd.wright88@mail.com', rides: 4, status: 'Pending', statusColor: 'bg-ink/10' },
-  ];
+  const [users, setUsers] = useState<UserRow[]>([]);
+
+  useEffect(() => {
+    adminAPI.listUsers().then((data) => {
+      if (data?.users) {
+        setUsers(data.users.map((u: Record<string, unknown>) => ({
+          id: (u.id as string)?.substring(0, 8) || '',
+          name: u.name as string || 'Unnamed',
+          tier: 'Standard',
+          email: u.email as string || '',
+          rides: u.total_rides as number || 0,
+          status: 'Active',
+          statusColor: 'bg-secondary/10',
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-8">

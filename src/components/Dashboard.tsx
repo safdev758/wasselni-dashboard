@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingUp, Download, Car, ShieldCheck, CircleDollarSign, AlertTriangle, FileText, ArrowRight } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 interface DashboardProps {
   onReviewReport: (id: string) => void;
@@ -17,11 +18,32 @@ export default function Dashboard({
   onViewRides, 
   onViewRevenue 
 }: DashboardProps) {
-  const recentReports = [
-    { id: 'REP-102', type: 'Safety', detail: 'Vehicle Issue - Driver #842', time: '12m ago', priority: 'High', color: 'bg-accent' },
-    { id: 'REP-103', type: 'Payment', detail: 'User Complaint - Late Refund', time: '45m ago', priority: 'Med', color: 'bg-primary' },
-    { id: 'REP-104', type: 'System', detail: 'GPS Signal Drop - Zone 4', time: '1h ago', priority: 'Low', color: 'bg-ink/10' },
-  ];
+  const [stats, setStats] = useState({ totalRides: 0, activeDrivers: 0, totalUsers: 0, openReports: 0 });
+  const [recentReports, setRecentReports] = useState<Array<{id: string; type: string; detail: string; time: string; priority: string; color: string}>>([]);
+
+  useEffect(() => {
+    adminAPI.listRides().then((data) => {
+      setStats(prev => ({ ...prev, totalRides: data?.rides?.length || 0 }));
+    }).catch(() => {});
+    adminAPI.listDrivers().then((data) => {
+      setStats(prev => ({ ...prev, activeDrivers: data?.drivers?.length || 0 }));
+    }).catch(() => {});
+    adminAPI.listUsers().then((data) => {
+      setStats(prev => ({ ...prev, totalUsers: data?.users?.length || 0 }));
+    }).catch(() => {});
+    adminAPI.listReports('open').then((data) => {
+      const reports = data?.reports || [];
+      setStats(prev => ({ ...prev, openReports: reports.length }));
+      setRecentReports(reports.slice(0, 3).map((r: Record<string, string>) => ({
+        id: r.id?.substring(0, 8) || '',
+        type: r.category || 'Report',
+        detail: r.description?.substring(0, 40) || '',
+        time: '',
+        priority: 'Med',
+        color: 'bg-primary',
+      })));
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -48,7 +70,7 @@ export default function Dashboard({
         <div onClick={onViewRides} className="col-span-3 neo-card cursor-pointer group hover:bg-ink hover:text-white transition-all">
           <div className="font-display font-black text-[12px] uppercase text-ink/60 mb-2 group-hover:text-white/60">Total Rides</div>
           <div className="flex flex-col justify-end flex-1">
-            <div className="text-4xl font-black font-display leading-none mb-1">14,208</div>
+            <div className="text-4xl font-black font-display leading-none mb-1">{stats.totalRides}</div>
             <div className="text-[11px] font-black uppercase text-secondary">
               +12.4% ↑
             </div>
@@ -59,7 +81,7 @@ export default function Dashboard({
         <div onClick={onViewDrivers} className="col-span-3 neo-card cursor-pointer group hover:bg-ink hover:text-white transition-all">
           <div className="font-display font-black text-[12px] uppercase text-ink/60 mb-2 group-hover:text-white/60">Active Drivers</div>
           <div className="flex flex-col justify-end flex-1">
-            <div className="text-4xl font-black font-display leading-none mb-1">842</div>
+            <div className="text-4xl font-black font-display leading-none mb-1">{stats.activeDrivers}</div>
             <div className="text-[11px] font-black uppercase text-secondary">
               +5.1% ↑
             </div>
