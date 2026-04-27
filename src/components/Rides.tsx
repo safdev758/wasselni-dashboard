@@ -1,18 +1,42 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Filter, ArrowDown } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 interface RidesProps {
   onReviewRide: (id: string) => void;
 }
 
+type RideRow = {
+  id: string;
+  date: string;
+  customer: string;
+  driver: string;
+  route: string;
+  fare: string;
+  status: string;
+  statusColor: string;
+};
+
 export default function Rides({ onReviewRide }: RidesProps) {
-  const rides = [
-    { id: '#RF-9042', date: 'Oct 24, 14:30', customer: 'Sarah Adams', driver: 'Mike T.', route: '124 Main St → Airport T2', fare: '$45.00', status: 'Completed', statusColor: 'bg-ink text-white' },
-    { id: '#RF-9043', date: 'Oct 24, 14:45', customer: 'James Riley', driver: 'Sarah K.', route: 'Downtown Hotel → Convention Center', fare: '$18.50', status: 'Active', statusColor: 'bg-primary' },
-    { id: '#RF-9044', date: 'Oct 24, 15:10', customer: 'Peter Lin', driver: 'Dave W.', route: 'Central Station → North Point Park', fare: '$22.00', status: 'Canceled', statusColor: 'bg-accent text-white' },
-    { id: '#RF-9045', date: 'Oct 24, 16:00', customer: 'Elena Myer', driver: 'Mike T.', route: 'Tech Hub → Westside Mall', fare: '$31.00', status: 'Completed', statusColor: 'bg-ink text-white' },
-  ];
+  const [rides, setRides] = useState<RideRow[]>([]);
+
+  useEffect(() => {
+    adminAPI.listRides().then((data) => {
+      if (data?.rides) {
+        setRides(data.rides.map((r: Record<string, unknown>) => ({
+          id: (r.id as string)?.substring(0, 8) || '',
+          date: r.created_at as string || '',
+          customer: r.rider_name as string || 'Rider',
+          driver: r.driver_name as string || 'Unassigned',
+          route: `${r.pickup_address || ''} → ${r.dropoff_address || ''}`,
+          fare: `${r.final_price || r.rider_price || 0} DZD`,
+          status: r.status as string || 'Unknown',
+          statusColor: r.status === 'completed' ? 'bg-ink text-white' : (r.status === 'cancelled' ? 'bg-accent text-white' : 'bg-primary'),
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">

@@ -1,22 +1,46 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Filter, MoreHorizontal, Star, User, Search } from 'lucide-react';
-
+import { adminAPI } from '../services/api';
 import { View } from '../types';
 
 interface DriversProps {
   onReviewDriver: (id: string) => void;
 }
 
+type DriverRow = {
+  id: string;
+  name: string;
+  phone: string;
+  vehicle: string;
+  plate: string;
+  rating: number | string;
+  status: string;
+  earnings: string;
+  color: string;
+};
+
 export default function Drivers({ onReviewDriver }: DriversProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [drivers, setDrivers] = useState<DriverRow[]>([]);
 
-  const drivers = [
-    { id: '#1042', name: 'Marcus Johnson', phone: '+1 (555) 019-2834', vehicle: 'Toyota Prius V', plate: 'XYZ-9821', rating: 4.9, status: 'Online', earnings: '$1,240.50', color: 'bg-primary' },
-    { id: '#1088', name: 'Sarah Jenkins', phone: 'sarah.j@email.com', vehicle: 'Honda CR-V', plate: 'PENDING', rating: 'N/A', status: 'Doc Review', earnings: '$0.00', color: 'bg-accent text-white' },
-    { id: '#0954', name: 'Elena Rodriguez', phone: '+1 (555) 743-1120', vehicle: 'Tesla Model 3', plate: 'ELC-202', rating: 4.7, status: 'Offline', earnings: '$850.25', color: 'bg-ink/10' },
-    { id: '#1102', name: 'David Chen', phone: '+1 (555) 332-9901', vehicle: 'Hyundai Sonata', plate: 'HND-445', rating: 5.0, status: 'In Ride', earnings: '$2,105.00', color: 'bg-secondary text-white' },
-  ];
+  useEffect(() => {
+    adminAPI.listDrivers().then((data) => {
+      if (data?.drivers) {
+        setDrivers(data.drivers.map((d: Record<string, unknown>) => ({
+          id: (d.id as string)?.substring(0, 8) || '',
+          name: d.name as string || 'Unnamed',
+          phone: d.phone as string || '',
+          vehicle: (d.vehicle_make as string || '') + ' ' + (d.vehicle_model as string || ''),
+          plate: d.plate_number as string || '',
+          rating: d.rating as number || 0,
+          status: d.is_online ? 'Online' : (d.status === 'pending' ? 'Doc Review' : 'Offline'),
+          earnings: '',
+          color: d.is_online ? 'bg-primary' : (d.status === 'pending' ? 'bg-accent text-white' : 'bg-ink/10'),
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   const filteredDrivers = drivers.filter(driver => 
     driver.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
